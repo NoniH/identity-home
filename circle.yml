@@ -1,0 +1,34 @@
+machine:
+  node:
+    version: 4.1.0
+  environment:
+    APP_NAME: face-verification
+
+dependencies:
+  pre:
+     - npm install
+  cache_directories:
+    - "node_modules/"
+
+test:
+  override:
+    - npm run prod
+
+deployment:
+  staging:
+    branch: /.*/
+    commands:
+    # Install Cloud Foundry command line client for deployment
+      - "curl -v -L -o cf-cli_amd64.deb 'https://cli.run.pivotal.io/stable?release=debian64&version=6.17.0&source=github'"
+      - sudo dpkg -i cf-cli_amd64.deb
+      - cf -v
+      - cf api $CF_API_DEV --skip-ssl-validation &> /dev/null
+      - cf auth $CF_USER_DEV $CF_PASSWORD_DEV &> /dev/null
+      - cf target -o $CF_ORG_DEV &> /dev/null
+      - cf target -s $CF_SPACE_DEV &> /dev/null
+
+      - cf push "$APP_NAME"-blue &> /dev/null
+      - cf map-route "$APP_NAME"-blue $CF_APP_URL_DEV -n $APP_NAME &> /dev/null
+
+      - cf push "$APP_NAME"-green &> /dev/null
+      - cf map-route "$APP_NAME"-green $CF_APP_URL_DEV -n $APP_NAME &> /dev/null
